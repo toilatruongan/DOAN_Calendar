@@ -47,6 +47,9 @@ public class User {
 
 	private String role;
 	// relationship
+	
+	@Column(name = "reset_password_token")
+    private String resetPasswordToken;
 
 	@OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
 	private List<Event> Events = new ArrayList<>();

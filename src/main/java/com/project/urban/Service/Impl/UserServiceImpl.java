@@ -7,6 +7,7 @@ import java.util.Optional;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -59,6 +60,16 @@ public class UserServiceImpl implements UserService {
 		return modelMapper.map(user, UserDTO.class);
 	}
 
+	@Override
+	public UserDTO getUserByEmail(String userEmail) {
+		ModelMapper modelMapper = new ModelMapper();
+
+		Optional<User> optionalUser = userRepository.findByEmail(userEmail);
+		User user = optionalUser.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+		return modelMapper.map(user, UserDTO.class);
+	}
+	
 	@Override
 	public List<UserDTO> getAllUsers() {
 		List<UserDTO> allUsers = new ArrayList<>();
@@ -115,4 +126,32 @@ public class UserServiceImpl implements UserService {
 		}
 		return new ResourceNotFoundException(ResponseCode.CODE_500, ErrorConstant.INTERNAL_SERVER_ERROR, null);
 	}
+	
+	//REST PASSWORD 
+	@Override
+	public ResourceNotFoundException updateResetPasswordToken(String token, String email) {
+	    Optional<User> optionalUser = userRepository.findByEmail(email);
+	    if (optionalUser.isEmpty()) {
+	        return new ResourceNotFoundException(ResponseCode.CODE_404, ErrorConstant.NOT_FOUND, null);
+	    } else {
+	        User user = optionalUser.get();
+	        user.setResetPasswordToken(token);
+	        userRepository.save(user);
+	        return new ResourceNotFoundException(ResponseCode.CODE_200, Constant.RESTPASWORD_SUCCESS, email);
+	    }
+	}
+    @Override
+    public User getByResetPasswordToken(String token) {
+        return userRepository.findByResetPasswordToken(token);
+    }
+
+    @Override
+    public void updatePassword(User user, String newPassword) {
+        BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+        String encodedPassword = passwordEncoder.encode(newPassword);
+        user.setPassword(encodedPassword);
+
+        user.setResetPasswordToken(null);
+        userRepository.save(user);
+    }
 }
